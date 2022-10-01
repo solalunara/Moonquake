@@ -1,11 +1,16 @@
-"use strict";
-exports.__esModule = true;
+import * as glm from "./node_modules/glm-js/build/glm-js.min.js";
+
 window.onload = main;
-var jquery = require("jquery");
-var $ = jquery;
-function main() {
-    var canvas = document.querySelector("#glCanvas");
-    $.post("/request", canvas, function (data, status) {
-        console.log(data);
-    });
+
+function main()
+{
+    const canvas = document.querySelector( "#glCanvas" );
+    const gl = canvas.getContext( "webgl" );
+
+    gl.clearColor( 0.0, 0.0, 0.0, 1.0 );
+    gl.clear( gl.COLOR_BUFFER_BIT );
+
+    var v3 = glm.vec3( 0, 0, 0 );
+    v3 += glm.vec3( 1, 1, 1 );
+    console.log( v3.x );
 }
