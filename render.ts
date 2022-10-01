@@ -1,5 +1,4 @@
-import "./toji-gl-matrix-8962b2e/src/types.d.ts";
-import * as mat4 from "./toji-gl-matrix-8962b2e/src/mat4.js";
+import * as mat4 from "gl-matrix/mat4";
 
 function main() {
     const canvas = document.querySelector("#glCanvas") as HTMLCanvasElement;

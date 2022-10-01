@@ -1,7 +1,6 @@
 "use strict";
 exports.__esModule = true;
-require("./toji-gl-matrix-8962b2e/src/types.d.ts");
-var mat4 = require("./toji-gl-matrix-8962b2e/src/mat4.js");
+var mat4 = require("gl-matrix/mat4");
 function main() {
     var canvas = document.querySelector("#glCanvas");
     if (canvas === null) {
