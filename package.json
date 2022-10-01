@@ -1,6 +1,9 @@
 {
   "dependencies": {
-    "gl-matrix": "^3.4.3",
+    "@types/node": "^18.7.23",
+    "glm-js": "^0.0.6-c",
+    "jquery": "^3.6.1",
+    "jsdom": "^20.0.0",
     "requirejs": "^2.3.6"
   }
 }
