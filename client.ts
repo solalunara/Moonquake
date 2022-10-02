@@ -1,5 +1,7 @@
 window.onload = main;
 
+///<reference path="./math.ts" />
+
 const vsSource = `
 attribute vec4 aVertexPosition;
 
@@ -52,15 +54,34 @@ function main()
           vertexPosition: gl.getAttribLocation(shaderProgram!, 'aVertexPosition'),
         },
         uniformLocations: {
-          projectionMatrix: gl.getUniformLocation(shaderProgram!, 'uProjectionMatrix'),
-          modelViewMatrix: gl.getUniformLocation(shaderProgram!, 'uModelViewMatrix'),
+          projectionMatrix: gl.getUniformLocation(shaderProgram!, 'uProjectionMatrix')!,
+          modelViewMatrix: gl.getUniformLocation(shaderProgram!, 'uModelViewMatrix')!,
         },
     }
 
 
     initBuffers( gl );
-    drawScene( gl, programInfo );
+    let prevt = 0;
+    function render( t: number ): void
+    {
+        t *= .001;
+        const dt = t - prevt;
+        prevt = t;
+
+        g_theta += 10;
+
+        canvas.width = document.body.clientWidth;
+        canvas.height = document.body.clientHeight;
+        gl!.viewport( 0, 0, canvas.width, canvas.height );
+        drawScene( gl!, programInfo );
+
+        requestAnimationFrame( render );
+    }
+
+    requestAnimationFrame( render );
 }
+
+let g_theta = 0;
 
 //source: mozilla webgl tutorial
 function initShaderProgram(gl: WebGLRenderingContext, vsSource: string, fsSource: string): WebGLProgram | null
@@ -132,7 +153,7 @@ function drawScene(gl: WebGLRenderingContext, programInfo: ProgramInfo ) {
     const projectionMatrix = Perspective( zFar, zNear, fieldOfView, aspect );
   
     let modelViewMatrix = Identity();
-    modelViewMatrix = Rotate( modelViewMatrix, 'x', 45 * Math.PI / 180 );
+    modelViewMatrix = Rotate( modelViewMatrix, 'x', g_theta * Math.PI / 180 );
     modelViewMatrix = Translate( modelViewMatrix, [0.0, 0.0, 6.0] );
   
     // Tell WebGL how to pull out the positions from the position

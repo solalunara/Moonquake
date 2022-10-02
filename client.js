@@ -1,4 +1,5 @@
 window.onload = main;
+///<reference path="./math.ts" />
 var vsSource = "\nattribute vec4 aVertexPosition;\n\nuniform mat4 uModelViewMatrix;\nuniform mat4 uProjectionMatrix;\n\nvoid main() {\n  gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;\n}\n";
 var fsSource = "\nvoid main() {\n  gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n}\n";
 function main() {
@@ -24,8 +25,21 @@ function main() {
         }
     };
     initBuffers(gl);
-    drawScene(gl, programInfo);
+    var prevt = 0;
+    function render(t) {
+        t *= .001;
+        var dt = t - prevt;
+        prevt = t;
+        g_theta += 10;
+        canvas.width = document.body.clientWidth;
+        canvas.height = document.body.clientHeight;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        drawScene(gl, programInfo);
+        requestAnimationFrame(render);
+    }
+    requestAnimationFrame(render);
 }
+var g_theta = 0;
 //source: mozilla webgl tutorial
 function initShaderProgram(gl, vsSource, fsSource) {
     var vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
@@ -85,7 +99,7 @@ function drawScene(gl, programInfo) {
     var zFar = 100.0;
     var projectionMatrix = Perspective(zFar, zNear, fieldOfView, aspect);
     var modelViewMatrix = Identity();
-    modelViewMatrix = Rotate(modelViewMatrix, 'x', 45 * Math.PI / 180);
+    modelViewMatrix = Rotate(modelViewMatrix, 'x', g_theta * Math.PI / 180);
     modelViewMatrix = Translate(modelViewMatrix, [0.0, 0.0, 6.0]);
     // Tell WebGL how to pull out the positions from the position
     // buffer into the vertexPosition attribute.
