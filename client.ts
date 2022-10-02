@@ -52,7 +52,10 @@ function main()
           modelViewMatrix: gl.getUniformLocation(shaderProgram!, 'uModelViewMatrix'),
         },
     }
-    drawScene( gl, programInfo, initBuffers(gl) );
+
+
+    initBuffers( gl );
+    drawScene( gl, programInfo );
 }
 
 //source: mozilla webgl tutorial
@@ -111,7 +114,7 @@ function initBuffers(gl: WebGLRenderingContext): { position: WebGLBuffer }
       position: positionBuffer!,
     };
 }
-function drawScene(gl: WebGLRenderingContext, programInfo: ProgramInfo, buffers: { position: WebGLBuffer } ) {
+function drawScene(gl: WebGLRenderingContext, programInfo: ProgramInfo ) {
     gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
     gl.clearDepth(1.0);                 // Clear everything
     gl.enable(gl.DEPTH_TEST);           // Enable depth testing
@@ -125,7 +128,7 @@ function drawScene(gl: WebGLRenderingContext, programInfo: ProgramInfo, buffers:
     const projectionMatrix = Perspective( zFar, zNear, fieldOfView, aspect );
   
     let modelViewMatrix = Identity();
-    modelViewMatrix = Translate( modelViewMatrix, [-0.0, 0.0, -6.0] );
+    modelViewMatrix = Translate( modelViewMatrix, [0.0, 0.0, 6.0] );
   
     // Tell WebGL how to pull out the positions from the position
     // buffer into the vertexPosition attribute.
@@ -136,7 +139,6 @@ function drawScene(gl: WebGLRenderingContext, programInfo: ProgramInfo, buffers:
       const stride = 0;         // how many bytes to get from one set of values to the next
                                 // 0 = use type and numComponents above
       const offset = 0;         // how many bytes inside the buffer to start from
-      gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
       gl.vertexAttribPointer(
           programInfo.attribLocations.vertexPosition,
           numComponents,
