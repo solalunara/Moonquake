@@ -91,9 +91,9 @@ function CreateSphere( gl: WebGLRenderingContext, radius: number, rings: number,
 
     for ( r = 0; r < rings; ++r ) for ( s = 0; s < sectors; ++s )
     {
-        const y: number = Math.sin( -Math.PI / 2 + Math.PI * r * R );
         const x: number = Math.cos( 2 * Math.PI * s * S ) * Math.sin( Math.PI * r * R );
-        const z: number = Math.sin( 2 * Math.PI * s * S ) * Math.sin( Math.PI * r * R );
+        const y: number = Math.sin( 2 * Math.PI * s * S ) * Math.sin( Math.PI * r * R );
+        const z: number = Math.sin( -Math.PI / 2 + Math.PI * r * R );
 
         texcs[ t++ ] = s*S;
         texcs[ t++ ] = r*R;
@@ -123,7 +123,7 @@ function CreateSphere( gl: WebGLRenderingContext, radius: number, rings: number,
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, fa, gl.STATIC_DRAW);
     
-    let ia: Int32Array = new Int32Array( verts.length );
+    let ia: Uint32Array = new Uint32Array( verts.length );
     for ( let i = 0; i < inds.length; ++i )
         ia[ i ] = inds[ i ];
     const ebo = gl.createBuffer();
@@ -308,6 +308,6 @@ function drawScene( gl: WebGLRenderingContext, programInfo: ProgramInfo, Meshes:
             false,
             M4ToFloat32List( modelViewMatrix ) );
     
-        gl.drawElements( gl.TRIANGLES, Spheres[ i ].inds.length, gl.UNSIGNED_SHORT, 0 )
+        gl.drawElements( gl.TRIANGLE_STRIP, Spheres[ i ].inds.length, gl.UNSIGNED_SHORT, 0 )
     }
 }

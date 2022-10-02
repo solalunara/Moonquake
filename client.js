@@ -38,9 +38,9 @@ function CreateSphere(gl, radius, rings, sectors) {
     var t = 0;
     for (r = 0; r < rings; ++r)
         for (s = 0; s < sectors; ++s) {
-            var y = Math.sin(-Math.PI / 2 + Math.PI * r * R);
             var x = Math.cos(2 * Math.PI * s * S) * Math.sin(Math.PI * r * R);
-            var z = Math.sin(2 * Math.PI * s * S) * Math.sin(Math.PI * r * R);
+            var y = Math.sin(2 * Math.PI * s * S) * Math.sin(Math.PI * r * R);
+            var z = Math.sin(-Math.PI / 2 + Math.PI * r * R);
             texcs[t++] = s * S;
             texcs[t++] = r * R;
             verts[v++] = x * radius;
@@ -65,7 +65,7 @@ function CreateSphere(gl, radius, rings, sectors) {
     var positionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, fa, gl.STATIC_DRAW);
-    var ia = new Int32Array(verts.length);
+    var ia = new Uint32Array(verts.length);
     for (var i_2 = 0; i_2 < inds.length; ++i_2)
         ia[i_2] = inds[i_2];
     var ebo = gl.createBuffer();
@@ -197,6 +197,6 @@ function drawScene(gl, programInfo, Meshes, Spheres) {
         gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
         var modelViewMatrix = GetMatrix(Spheres[i].transform);
         gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, M4ToFloat32List(modelViewMatrix));
-        gl.drawElements(gl.TRIANGLES, Spheres[i].inds.length, gl.UNSIGNED_SHORT, 0);
+        gl.drawElements(gl.TRIANGLE_STRIP, Spheres[i].inds.length, gl.UNSIGNED_SHORT, 0);
     }
 }
