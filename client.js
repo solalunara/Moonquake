@@ -29,7 +29,8 @@ function CreateMesh(gl, verts) {
 function CreateSphere(gl, radius, rings, sectors) {
     var R = 1.0 / (rings - 1);
     var S = 1.0 / (sectors - 1);
-    var r, s = 0;
+    var r = 0;
+    var s = 0;
     var verts = [];
     var v = 0;
     var norms = [];
@@ -54,10 +55,10 @@ function CreateSphere(gl, radius, rings, sectors) {
     var i = 0;
     for (r = 0; r < rings; ++r)
         for (s = 0; s < sectors; s++) {
-            inds[i++] = r * sectors + s;
-            inds[i++] = r * sectors + (s + 1);
-            inds[i++] = (r + 1) * sectors + (s + 1);
             inds[i++] = (r + 1) * sectors + s;
+            inds[i++] = (r + 1) * sectors + (s + 1);
+            inds[i++] = r * sectors + (s + 1);
+            inds[i++] = r * sectors + s;
         }
     var fa = new Float32Array(verts.length);
     for (var i_1 = 0; i_1 < verts.length; ++i_1)
@@ -65,7 +66,7 @@ function CreateSphere(gl, radius, rings, sectors) {
     var positionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, fa, gl.STATIC_DRAW);
-    var ia = new Uint32Array(verts.length);
+    var ia = new Uint16Array(verts.length);
     for (var i_2 = 0; i_2 < inds.length; ++i_2)
         ia[i_2] = inds[i_2];
     var ebo = gl.createBuffer();
@@ -110,7 +111,7 @@ function main() {
             modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix')
         }
     };
-    var s1 = CreateSphere(gl, 1.0, 10, 10);
+    var s1 = CreateSphere(gl, 1.0, 5, 500);
     s1.transform.pos[2] += 4;
     var prevt = 0;
     function render(t) {
@@ -197,6 +198,6 @@ function drawScene(gl, programInfo, Meshes, Spheres) {
         gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
         var modelViewMatrix = GetMatrix(Spheres[i].transform);
         gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, M4ToFloat32List(modelViewMatrix));
-        gl.drawElements(gl.TRIANGLE_STRIP, Spheres[i].inds.length, gl.UNSIGNED_SHORT, 0);
+        gl.drawElements(gl.TRIANGLE_STRIP, Spheres[i].verts.length, gl.UNSIGNED_SHORT, 0);
     }
 }

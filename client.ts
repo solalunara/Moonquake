@@ -83,7 +83,7 @@ function CreateSphere( gl: WebGLRenderingContext, radius: number, rings: number,
 {
     const R: number = 1.0/(rings-1);
     const S: number = 1.0/(sectors-1);
-    let r: number, s: number = 0;
+    let r: number = 0; let s: number = 0;
 
     let verts: number[] = []; let v = 0;
     let norms: number[] = []; let n = 0;
@@ -110,10 +110,10 @@ function CreateSphere( gl: WebGLRenderingContext, radius: number, rings: number,
     let inds: number[] = []; let i = 0;
     for ( r = 0; r < rings; ++r ) for ( s = 0; s < sectors; s++ )
     {
-        inds[ i++ ] = r * sectors + s;
-        inds[ i++ ] = r * sectors + ( s + 1 );
-        inds[ i++ ] = ( r + 1 ) * sectors + ( s + 1 );
         inds[ i++ ] = ( r + 1 ) * sectors + s;
+        inds[ i++ ] = ( r + 1 ) * sectors + ( s + 1 );
+        inds[ i++ ] = r * sectors + ( s + 1 );
+        inds[ i++ ] = r * sectors + s;
     }
 
     let fa: Float32Array = new Float32Array( verts.length );
@@ -123,7 +123,7 @@ function CreateSphere( gl: WebGLRenderingContext, radius: number, rings: number,
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, fa, gl.STATIC_DRAW);
     
-    let ia: Uint32Array = new Uint32Array( verts.length );
+    let ia: Uint16Array = new Uint16Array( verts.length );
     for ( let i = 0; i < inds.length; ++i )
         ia[ i ] = inds[ i ];
     const ebo = gl.createBuffer();
@@ -178,7 +178,7 @@ function main()
     }
 
 
-    let s1 = CreateSphere( gl, 1.0, 10, 10 );
+    let s1 = CreateSphere( gl, 1.0, 5, 500 );
     s1.transform.pos[ 2 ] += 4;
 
     let prevt = 0;
@@ -308,6 +308,6 @@ function drawScene( gl: WebGLRenderingContext, programInfo: ProgramInfo, Meshes:
             false,
             M4ToFloat32List( modelViewMatrix ) );
     
-        gl.drawElements( gl.TRIANGLE_STRIP, Spheres[ i ].inds.length, gl.UNSIGNED_SHORT, 0 )
+        gl.drawElements( gl.TRIANGLE_STRIP, Spheres[ i ].verts.length, gl.UNSIGNED_SHORT, 0 )
     }
 }
