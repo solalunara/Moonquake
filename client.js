@@ -55,10 +55,10 @@ function CreateSphere(gl, radius, rings, sectors) {
     var i = 0;
     for (r = 0; r < rings; ++r)
         for (s = 0; s < sectors; s++) {
+            inds[i++] = r * sectors + s;
+            inds[i++] = r * sectors + (s + 1);
             inds[i++] = (r + 1) * sectors + s;
             inds[i++] = (r + 1) * sectors + (s + 1);
-            inds[i++] = r * sectors + (s + 1);
-            inds[i++] = r * sectors + s;
         }
     var fa = new Float32Array(verts.length);
     for (var i_1 = 0; i_1 < verts.length; ++i_1)
@@ -111,7 +111,7 @@ function main() {
             modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix')
         }
     };
-    var s1 = CreateSphere(gl, 1.0, 5, 500);
+    var s1 = CreateSphere(gl, 1.0, 10, 10);
     s1.transform.pos[2] += 4;
     var prevt = 0;
     function render(t) {

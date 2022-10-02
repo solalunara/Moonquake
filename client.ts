@@ -110,10 +110,10 @@ function CreateSphere( gl: WebGLRenderingContext, radius: number, rings: number,
     let inds: number[] = []; let i = 0;
     for ( r = 0; r < rings; ++r ) for ( s = 0; s < sectors; s++ )
     {
+        inds[ i++ ] = r * sectors + s;
+        inds[ i++ ] = r * sectors + ( s + 1 );
         inds[ i++ ] = ( r + 1 ) * sectors + s;
         inds[ i++ ] = ( r + 1 ) * sectors + ( s + 1 );
-        inds[ i++ ] = r * sectors + ( s + 1 );
-        inds[ i++ ] = r * sectors + s;
     }
 
     let fa: Float32Array = new Float32Array( verts.length );
@@ -178,7 +178,7 @@ function main()
     }
 
 
-    let s1 = CreateSphere( gl, 1.0, 5, 500 );
+    let s1 = CreateSphere( gl, 1.0, 10, 10 );
     s1.transform.pos[ 2 ] += 4;
 
     let prevt = 0;
