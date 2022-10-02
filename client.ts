@@ -131,6 +131,8 @@ function CreateSphere( gl: WebGLRenderingContext, radius: number, rings: number,
     const positionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, fa, gl.STATIC_DRAW);
+    gl.vertexAttribPointer( programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0 );
+    gl.enableVertexAttribArray( programInfo.attribLocations.vertexPosition );
     
     let ia: Uint16Array = new Uint16Array( verts.length );
     for ( let i = 0; i < inds.length; ++i )
@@ -143,8 +145,8 @@ function CreateSphere( gl: WebGLRenderingContext, radius: number, rings: number,
     gl.bindBuffer( gl.ARRAY_BUFFER, textureCoordBuffer);
     gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( texcs ), gl.STATIC_DRAW );
     gl.useProgram( programInfo.program );
-    gl.vertexAttribPointer( programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0 );
-    gl.enableVertexAttribArray( programInfo.attribLocations.vertexPosition );
+    gl.vertexAttribPointer( programInfo.attribLocations.textureCoordinate, 2, gl.FLOAT, false, 0, 0 );
+    gl.enableVertexAttribArray( programInfo.attribLocations.textureCoordinate );
 
     return {
         ArrayBuffer: positionBuffer!,
