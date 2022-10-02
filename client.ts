@@ -188,7 +188,7 @@ function main()
         const dt = t - prevt;
         prevt = t;
 
-        g_theta += 10;
+        s1.transform.rot = Rotate( s1.transform.rot, 'x', 1 * Math.PI / 180 );
 
         canvas.width = document.body.clientWidth;
         canvas.height = document.body.clientHeight;
@@ -201,7 +201,6 @@ function main()
     requestAnimationFrame( render );
 }
 
-let g_theta = 0;
 
 //source: mozilla webgl tutorial
 function initShaderProgram(gl: WebGLRenderingContext, vsSource: string, fsSource: string): WebGLProgram | null

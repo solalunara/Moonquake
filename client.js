@@ -117,7 +117,7 @@ function main() {
         t *= .001;
         var dt = t - prevt;
         prevt = t;
-        g_theta += 10;
+        s1.transform.rot = Rotate(s1.transform.rot, 'x', 1 * Math.PI / 180);
         canvas.width = document.body.clientWidth;
         canvas.height = document.body.clientHeight;
         gl.viewport(0, 0, canvas.width, canvas.height);
@@ -126,7 +126,6 @@ function main() {
     }
     requestAnimationFrame(render);
 }
-var g_theta = 0;
 //source: mozilla webgl tutorial
 function initShaderProgram(gl, vsSource, fsSource) {
     var vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
