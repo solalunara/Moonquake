@@ -4,17 +4,22 @@ window.onload = main;
 
 const vsSource = `
 attribute vec4 aVertexPosition;
+attribute vec2 aTextureCoord;
+varying highp vec2 vTextureCoord;
 
 uniform mat4 uModelViewMatrix;
 uniform mat4 uProjectionMatrix;
 
 void main() {
   gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+  vTextureCoord = aTextureCoord;
 }
 `;  
 const fsSource = `
+varying highp vec2 vTextureCoord;
+uniform sampler2D tex;
 void main() {
-  gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+  gl_FragColor = texture2D( tex, vTextureCoord );
 }
 `;
 
@@ -22,10 +27,12 @@ type ProgramInfo = {
     program: WebGLProgram,
     attribLocations: {
         vertexPosition: number,
+        textureCoordinate: number,
     },
     uniformLocations: {
         projectionMatrix: WebGLUniformLocation,
         modelViewMatrix: WebGLUniformLocation,
+        uSampler: WebGLUniformLocation,
     }
 }
 type Transform = {
@@ -70,6 +77,8 @@ function CreateMesh( gl: WebGLRenderingContext, verts: number[] ): Mesh
 type Sphere = {
     ArrayBuffer: WebGLBuffer,
     ElementArrayBuffer: WebGLBuffer,
+    TexCoordBuffer: WebGLBuffer,
+    Texture: WebGLTexture,
     transform: Transform,
     radius: number,
     rings: number,
@@ -79,7 +88,7 @@ type Sphere = {
     texcs: number[],
     inds: number[]
 }
-function CreateSphere( gl: WebGLRenderingContext, radius: number, rings: number, sectors: number ): Sphere
+function CreateSphere( gl: WebGLRenderingContext, radius: number, rings: number, sectors: number, programInfo: ProgramInfo, Texture: WebGLTexture ): Sphere
 {
     const R: number = 1.0/(rings-1);
     const S: number = 1.0/(sectors-1);
@@ -108,7 +117,7 @@ function CreateSphere( gl: WebGLRenderingContext, radius: number, rings: number,
     }
 
     let inds: number[] = []; let i = 0;
-    for ( r = 0; r < rings; ++r ) for ( s = 0; s < sectors; s++ )
+    for ( r = 0; r < rings - 1; ++r ) for ( s = 0; s < sectors; s++ )
     {
         inds[ i++ ] = r * sectors + s;
         inds[ i++ ] = r * sectors + ( s + 1 );
@@ -130,9 +139,18 @@ function CreateSphere( gl: WebGLRenderingContext, radius: number, rings: number,
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, ebo );
     gl.bufferData( gl.ELEMENT_ARRAY_BUFFER, ia, gl.STATIC_DRAW );
 
+    const textureCoordBuffer = gl.createBuffer();
+    gl.bindBuffer( gl.ARRAY_BUFFER, textureCoordBuffer);
+    gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( texcs ), gl.STATIC_DRAW );
+    gl.useProgram( programInfo.program );
+    gl.vertexAttribPointer( programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0 );
+    gl.enableVertexAttribArray( programInfo.attribLocations.vertexPosition );
+
     return {
         ArrayBuffer: positionBuffer!,
         ElementArrayBuffer: ebo!,
+        TexCoordBuffer: textureCoordBuffer!,
+        Texture: Texture,
         transform: {
             rot: Identity(),
             scl: [ 1, 1, 1 ],
@@ -170,15 +188,16 @@ function main()
         program: shaderProgram!,
         attribLocations: {
           vertexPosition: gl.getAttribLocation(shaderProgram!, 'aVertexPosition'),
+          textureCoordinate: gl.getAttribLocation( shaderProgram!, 'aTextureCoord' ),
         },
         uniformLocations: {
           projectionMatrix: gl.getUniformLocation(shaderProgram!, 'uProjectionMatrix')!,
           modelViewMatrix: gl.getUniformLocation(shaderProgram!, 'uModelViewMatrix')!,
+          uSampler: gl.getUniformLocation( shaderProgram!, 'uSampler' )!,
         },
     }
 
-
-    let s1 = CreateSphere( gl, 1.0, 10, 10 );
+    let s1 = CreateSphere( gl, 1.0, 100, 100, programInfo, loadTexture( gl, "moon.tif" ) );
     s1.transform.pos[ 2 ] += 4;
 
     let prevt = 0;
@@ -295,19 +314,69 @@ function drawScene( gl: WebGLRenderingContext, programInfo: ProgramInfo, Meshes:
     }
     for ( let i = 0; i < Spheres.length; ++i )
     {
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, Spheres[ i ].Texture);
+        gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
+
         gl.bindBuffer( gl.ARRAY_BUFFER, Spheres[ i ].ArrayBuffer );
         gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, Spheres[ i ].ElementArrayBuffer );
 
-        gl.vertexAttribPointer( programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0 );
-        gl.enableVertexAttribArray( programInfo.attribLocations.vertexPosition );
 
         let modelViewMatrix = GetMatrix( Spheres[ i ].transform );
 
-        gl.uniformMatrix4fv(
-            programInfo.uniformLocations.modelViewMatrix,
-            false,
-            M4ToFloat32List( modelViewMatrix ) );
+        gl.uniformMatrix4fv( programInfo.uniformLocations.modelViewMatrix, false, M4ToFloat32List( modelViewMatrix ) );
     
         gl.drawElements( gl.TRIANGLE_STRIP, Spheres[ i ].verts.length, gl.UNSIGNED_SHORT, 0 )
     }
+}
+
+function loadTexture(gl: WebGLRenderingContext, url: string): WebGLTexture
+{
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+  
+    // Because images have to be downloaded over the internet
+    // they might take a moment until they are ready.
+    // Until then put a single pixel in the texture so we can
+    // use it immediately. When the image has finished downloading
+    // we'll update the texture with the contents of the image.
+    const level = 0;
+    const internalFormat = gl.RGBA;
+    const width = 1;
+    const height = 1;
+    const border = 0;
+    const srcFormat = gl.RGBA;
+    const srcType = gl.UNSIGNED_BYTE;
+    const pixel = new Uint8Array([0, 0, 255, 255]);  // opaque blue
+    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
+                width, height, border, srcFormat, srcType,
+                pixel);
+  
+    const image = new Image();
+        image.onload = () => {
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
+                            srcFormat, srcType, image);
+    
+        // WebGL1 has different requirements for power of 2 images
+        // vs non power of 2 images so check if the image is a
+        // power of 2 in both dimensions.
+        if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
+            // Yes, it's a power of 2. Generate mips.
+            gl.generateMipmap(gl.TEXTURE_2D);
+        } else {
+            // No, it's not a power of 2. Turn off mips and set
+            // wrapping to clamp to edge
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        }
+    };
+    image.src = url;
+  
+    return texture!;
+}
+function isPowerOf2( value: number ) 
+{
+    return ( value & (value - 1) ) === 0;
 }

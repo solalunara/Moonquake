@@ -1,7 +1,7 @@
 window.onload = main;
 ///<reference path="./math.ts" />
-var vsSource = "\nattribute vec4 aVertexPosition;\n\nuniform mat4 uModelViewMatrix;\nuniform mat4 uProjectionMatrix;\n\nvoid main() {\n  gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;\n}\n";
-var fsSource = "\nvoid main() {\n  gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n}\n";
+var vsSource = "\nattribute vec4 aVertexPosition;\nattribute vec2 aTextureCoord;\nvarying highp vec2 vTextureCoord;\n\nuniform mat4 uModelViewMatrix;\nuniform mat4 uProjectionMatrix;\n\nvoid main() {\n  gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;\n  vTextureCoord = aTextureCoord;\n}\n";
+var fsSource = "\nvarying highp vec2 vTextureCoord;\nuniform sampler2D tex;\nvoid main() {\n  gl_FragColor = texture2D( tex, vTextureCoord );\n}\n";
 function GetMatrix(t) {
     var m = Identity();
     m = Scale(m, t.scl);
@@ -26,7 +26,7 @@ function CreateMesh(gl, verts) {
         verts: verts
     };
 }
-function CreateSphere(gl, radius, rings, sectors) {
+function CreateSphere(gl, radius, rings, sectors, programInfo, Texture) {
     var R = 1.0 / (rings - 1);
     var S = 1.0 / (sectors - 1);
     var r = 0;
@@ -53,7 +53,7 @@ function CreateSphere(gl, radius, rings, sectors) {
         }
     var inds = [];
     var i = 0;
-    for (r = 0; r < rings; ++r)
+    for (r = 0; r < rings - 1; ++r)
         for (s = 0; s < sectors; s++) {
             inds[i++] = r * sectors + s;
             inds[i++] = r * sectors + (s + 1);
@@ -72,9 +72,17 @@ function CreateSphere(gl, radius, rings, sectors) {
     var ebo = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, ia, gl.STATIC_DRAW);
+    var textureCoordBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texcs), gl.STATIC_DRAW);
+    gl.useProgram(programInfo.program);
+    gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
     return {
         ArrayBuffer: positionBuffer,
         ElementArrayBuffer: ebo,
+        TexCoordBuffer: textureCoordBuffer,
+        Texture: Texture,
         transform: {
             rot: Identity(),
             scl: [1, 1, 1],
@@ -104,14 +112,16 @@ function main() {
     var programInfo = {
         program: shaderProgram,
         attribLocations: {
-            vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition')
+            vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
+            textureCoordinate: gl.getAttribLocation(shaderProgram, 'aTextureCoord')
         },
         uniformLocations: {
             projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
-            modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix')
+            modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
+            uSampler: gl.getUniformLocation(shaderProgram, 'uSampler')
         }
     };
-    var s1 = CreateSphere(gl, 1.0, 10, 10);
+    var s1 = CreateSphere(gl, 1.0, 100, 100, programInfo, loadTexture(gl, "moon.tif"));
     s1.transform.pos[2] += 4;
     var prevt = 0;
     function render(t) {
@@ -192,12 +202,55 @@ function drawScene(gl, programInfo, Meshes, Spheres) {
         }
     }
     for (var i = 0; i < Spheres.length; ++i) {
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, Spheres[i].Texture);
+        gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
         gl.bindBuffer(gl.ARRAY_BUFFER, Spheres[i].ArrayBuffer);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, Spheres[i].ElementArrayBuffer);
-        gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
         var modelViewMatrix = GetMatrix(Spheres[i].transform);
         gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, M4ToFloat32List(modelViewMatrix));
         gl.drawElements(gl.TRIANGLE_STRIP, Spheres[i].verts.length, gl.UNSIGNED_SHORT, 0);
     }
+}
+function loadTexture(gl, url) {
+    var texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    // Because images have to be downloaded over the internet
+    // they might take a moment until they are ready.
+    // Until then put a single pixel in the texture so we can
+    // use it immediately. When the image has finished downloading
+    // we'll update the texture with the contents of the image.
+    var level = 0;
+    var internalFormat = gl.RGBA;
+    var width = 1;
+    var height = 1;
+    var border = 0;
+    var srcFormat = gl.RGBA;
+    var srcType = gl.UNSIGNED_BYTE;
+    var pixel = new Uint8Array([0, 0, 255, 255]); // opaque blue
+    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, width, height, border, srcFormat, srcType, pixel);
+    var image = new Image();
+    image.onload = function () {
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, srcFormat, srcType, image);
+        // WebGL1 has different requirements for power of 2 images
+        // vs non power of 2 images so check if the image is a
+        // power of 2 in both dimensions.
+        if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
+            // Yes, it's a power of 2. Generate mips.
+            gl.generateMipmap(gl.TEXTURE_2D);
+        }
+        else {
+            // No, it's not a power of 2. Turn off mips and set
+            // wrapping to clamp to edge
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        }
+    };
+    image.src = url;
+    return texture;
+}
+function isPowerOf2(value) {
+    return (value & (value - 1)) === 0;
 }
