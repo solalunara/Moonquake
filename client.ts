@@ -31,6 +31,10 @@ type ProgramInfo = {
 function main()
 {
     const canvas = document.querySelector( "#glCanvas" ) as HTMLCanvasElement;
+
+    canvas.width = document.body.clientWidth;
+    canvas.height = document.body.clientHeight;
+
     const gl = canvas!.getContext( "webgl" );
     if ( gl === null )
     {

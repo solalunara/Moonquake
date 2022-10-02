@@ -3,6 +3,8 @@ var vsSource = "\nattribute vec4 aVertexPosition;\n\nuniform mat4 uModelViewMatr
 var fsSource = "\nvoid main() {\n  gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n}\n";
 function main() {
     var canvas = document.querySelector("#glCanvas");
+    canvas.width = document.body.clientWidth;
+    canvas.height = document.body.clientHeight;
     var gl = canvas.getContext("webgl");
     if (gl === null) {
         alert("Couldn't find webgl context - try updating your browser");
