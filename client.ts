@@ -69,6 +69,7 @@ function CreateMesh( gl: WebGLRenderingContext, verts: number[] ): Mesh
 }
 type Sphere = {
     ArrayBuffer: WebGLBuffer,
+    ElementArrayBuffer: WebGLBuffer,
     transform: Transform,
     radius: number,
     rings: number,
@@ -120,12 +121,18 @@ function CreateSphere( gl: WebGLRenderingContext, radius: number, rings: number,
         fa[ i ] = verts[ i ];
     const positionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER,
-                  fa,
-                  gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, fa, gl.STATIC_DRAW);
+    
+    let ia: Int32Array = new Int32Array( verts.length );
+    for ( let i = 0; i < inds.length; ++i )
+        ia[ i ] = inds[ i ];
+    const ebo = gl.createBuffer();
+    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, ebo );
+    gl.bufferData( gl.ELEMENT_ARRAY_BUFFER, ia, gl.STATIC_DRAW );
 
     return {
         ArrayBuffer: positionBuffer!,
+        ElementArrayBuffer: ebo!,
         transform: {
             rot: Identity(),
             scl: [ 1, 1, 1 ],
@@ -290,21 +297,10 @@ function drawScene( gl: WebGLRenderingContext, programInfo: ProgramInfo, Meshes:
     for ( let i = 0; i < Spheres.length; ++i )
     {
         gl.bindBuffer( gl.ARRAY_BUFFER, Spheres[ i ].ArrayBuffer );
-        const numComponents = 2;  // pull out 2 values per iteration
-        const type = gl.FLOAT;    // the data in the buffer is 32bit floats
-        const normalize = false;  // don't normalize
-        const stride = 0;         // how many bytes to get from one set of values to the next
-                                    // 0 = use type and numComponents above
-        const offset = 0;         // how many bytes inside the buffer to start from
-        gl.vertexAttribPointer(
-            programInfo.attribLocations.vertexPosition,
-            numComponents,
-            type,
-            normalize,
-            stride,
-            offset);
-        gl.enableVertexAttribArray(
-            programInfo.attribLocations.vertexPosition);
+        gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, Spheres[ i ].ElementArrayBuffer );
+
+        gl.vertexAttribPointer( programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0 );
+        gl.enableVertexAttribArray( programInfo.attribLocations.vertexPosition );
 
         let modelViewMatrix = GetMatrix( Spheres[ i ].transform );
 
@@ -313,10 +309,6 @@ function drawScene( gl: WebGLRenderingContext, programInfo: ProgramInfo, Meshes:
             false,
             M4ToFloat32List( modelViewMatrix ) );
     
-        {
-            const offset = 0;
-            const vertexCount = 4;
-            gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount);
-        }
+        gl.drawElements( gl.TRIANGLES, Spheres[ i ].inds.length, gl.UNSIGNED_SHORT, 0 )
     }
 }

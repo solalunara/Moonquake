@@ -65,8 +65,15 @@ function CreateSphere(gl, radius, rings, sectors) {
     var positionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, fa, gl.STATIC_DRAW);
+    var ia = new Int32Array(verts.length);
+    for (var i_2 = 0; i_2 < inds.length; ++i_2)
+        ia[i_2] = inds[i_2];
+    var ebo = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, ia, gl.STATIC_DRAW);
     return {
         ArrayBuffer: positionBuffer,
+        ElementArrayBuffer: ebo,
         transform: {
             rot: Identity(),
             scl: [1, 1, 1],
@@ -186,20 +193,11 @@ function drawScene(gl, programInfo, Meshes, Spheres) {
     }
     for (var i = 0; i < Spheres.length; ++i) {
         gl.bindBuffer(gl.ARRAY_BUFFER, Spheres[i].ArrayBuffer);
-        var numComponents = 2; // pull out 2 values per iteration
-        var type = gl.FLOAT; // the data in the buffer is 32bit floats
-        var normalize = false; // don't normalize
-        var stride = 0; // how many bytes to get from one set of values to the next
-        // 0 = use type and numComponents above
-        var offset = 0; // how many bytes inside the buffer to start from
-        gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, numComponents, type, normalize, stride, offset);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, Spheres[i].ElementArrayBuffer);
+        gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
         var modelViewMatrix = GetMatrix(Spheres[i].transform);
         gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, M4ToFloat32List(modelViewMatrix));
-        {
-            var offset_2 = 0;
-            var vertexCount = 4;
-            gl.drawArrays(gl.TRIANGLE_STRIP, offset_2, vertexCount);
-        }
+        gl.drawElements(gl.TRIANGLES, Spheres[i].inds.length, gl.UNSIGNED_SHORT, 0);
     }
 }
