@@ -2,6 +2,85 @@ window.onload = main;
 ///<reference path="./math.ts" />
 var vsSource = "\nattribute vec4 aVertexPosition;\n\nuniform mat4 uModelViewMatrix;\nuniform mat4 uProjectionMatrix;\n\nvoid main() {\n  gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;\n}\n";
 var fsSource = "\nvoid main() {\n  gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n}\n";
+function GetMatrix(t) {
+    var m = Identity();
+    m = Scale(m, t.scl);
+    m = MatMultiply(m, t.rot);
+    m = Translate(m, t.pos);
+    return m;
+}
+function CreateMesh(gl, verts) {
+    var fa = new Float32Array(verts.length);
+    for (var i = 0; i < verts.length; ++i)
+        fa[i] = verts[i];
+    var positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, fa, gl.STATIC_DRAW);
+    return {
+        ArrayBuffer: positionBuffer,
+        transform: {
+            rot: Identity(),
+            scl: [1, 1, 1],
+            pos: [0, 0, 0]
+        },
+        verts: verts
+    };
+}
+function CreateSphere(gl, radius, rings, sectors) {
+    var R = 1.0 / (rings - 1);
+    var S = 1.0 / (sectors - 1);
+    var r, s = 0;
+    var verts = [];
+    var v = 0;
+    var norms = [];
+    var n = 0;
+    var texcs = [];
+    var t = 0;
+    for (r = 0; r < rings; ++r)
+        for (s = 0; s < sectors; ++s) {
+            var y = Math.sin(-Math.PI / 2 + Math.PI * r * R);
+            var x = Math.cos(2 * Math.PI * s * S) * Math.sin(Math.PI * r * R);
+            var z = Math.sin(2 * Math.PI * s * S) * Math.sin(Math.PI * r * R);
+            texcs[t++] = s * S;
+            texcs[t++] = r * R;
+            verts[v++] = x * radius;
+            verts[v++] = y * radius;
+            verts[v++] = z * radius;
+            norms[n++] = x;
+            norms[n++] = y;
+            norms[n++] = z;
+        }
+    var inds = [];
+    var i = 0;
+    for (r = 0; r < rings; ++r)
+        for (s = 0; s < sectors; s++) {
+            inds[i++] = r * sectors + s;
+            inds[i++] = r * sectors + (s + 1);
+            inds[i++] = (r + 1) * sectors + (s + 1);
+            inds[i++] = (r + 1) * sectors + s;
+        }
+    var fa = new Float32Array(verts.length);
+    for (var i_1 = 0; i_1 < verts.length; ++i_1)
+        fa[i_1] = verts[i_1];
+    var positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, fa, gl.STATIC_DRAW);
+    return {
+        ArrayBuffer: positionBuffer,
+        transform: {
+            rot: Identity(),
+            scl: [1, 1, 1],
+            pos: [0, 0, 0]
+        },
+        radius: radius,
+        rings: rings,
+        sectors: sectors,
+        verts: verts,
+        norms: norms,
+        texcs: texcs,
+        inds: inds
+    };
+}
 function main() {
     var canvas = document.querySelector("#glCanvas");
     canvas.width = document.body.clientWidth;
@@ -24,7 +103,8 @@ function main() {
             modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix')
         }
     };
-    initBuffers(gl);
+    var s1 = CreateSphere(gl, 1.0, 10, 10);
+    s1.transform.pos[2] += 4;
     var prevt = 0;
     function render(t) {
         t *= .001;
@@ -34,7 +114,7 @@ function main() {
         canvas.width = document.body.clientWidth;
         canvas.height = document.body.clientHeight;
         gl.viewport(0, 0, canvas.width, canvas.height);
-        drawScene(gl, programInfo);
+        drawScene(gl, programInfo, [], [s1]);
         requestAnimationFrame(render);
     }
     requestAnimationFrame(render);
@@ -73,21 +153,7 @@ function loadShader(gl, type, source) {
     }
     return shader;
 }
-function initBuffers(gl) {
-    var positionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    var positions = [
-        1.0, 1.0,
-        -1.0, 1.0,
-        1.0, -1.0,
-        -1.0, -1.0,
-    ];
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-    return {
-        position: positionBuffer
-    };
-}
-function drawScene(gl, programInfo) {
+function drawScene(gl, programInfo, Meshes, Spheres) {
     gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
     gl.clearDepth(1.0); // Clear everything
     gl.enable(gl.DEPTH_TEST); // Enable depth testing
@@ -98,12 +164,10 @@ function drawScene(gl, programInfo) {
     var zNear = 0.1;
     var zFar = 100.0;
     var projectionMatrix = Perspective(zFar, zNear, fieldOfView, aspect);
-    var modelViewMatrix = Identity();
-    modelViewMatrix = Rotate(modelViewMatrix, 'x', g_theta * Math.PI / 180);
-    modelViewMatrix = Translate(modelViewMatrix, [0.0, 0.0, 6.0]);
-    // Tell WebGL how to pull out the positions from the position
-    // buffer into the vertexPosition attribute.
-    {
+    gl.useProgram(programInfo.program);
+    gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, M4ToFloat32List(projectionMatrix));
+    for (var i = 0; i < Meshes.length; ++i) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, Meshes[i].ArrayBuffer);
         var numComponents = 2; // pull out 2 values per iteration
         var type = gl.FLOAT; // the data in the buffer is 32bit floats
         var normalize = false; // don't normalize
@@ -112,15 +176,30 @@ function drawScene(gl, programInfo) {
         var offset = 0; // how many bytes inside the buffer to start from
         gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, numComponents, type, normalize, stride, offset);
         gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+        var modelViewMatrix = GetMatrix(Meshes[i].transform);
+        gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, M4ToFloat32List(modelViewMatrix));
+        {
+            var offset_1 = 0;
+            var vertexCount = 4;
+            gl.drawArrays(gl.TRIANGLE_STRIP, offset_1, vertexCount);
+        }
     }
-    // Tell WebGL to use our program when drawing
-    gl.useProgram(programInfo.program);
-    // Set the shader uniforms
-    gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, M4ToFloat32List(projectionMatrix));
-    gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, M4ToFloat32List(modelViewMatrix));
-    {
-        var offset = 0;
-        var vertexCount = 4;
-        gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount);
+    for (var i = 0; i < Spheres.length; ++i) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, Spheres[i].ArrayBuffer);
+        var numComponents = 2; // pull out 2 values per iteration
+        var type = gl.FLOAT; // the data in the buffer is 32bit floats
+        var normalize = false; // don't normalize
+        var stride = 0; // how many bytes to get from one set of values to the next
+        // 0 = use type and numComponents above
+        var offset = 0; // how many bytes inside the buffer to start from
+        gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, numComponents, type, normalize, stride, offset);
+        gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+        var modelViewMatrix = GetMatrix(Spheres[i].transform);
+        gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, M4ToFloat32List(modelViewMatrix));
+        {
+            var offset_2 = 0;
+            var vertexCount = 4;
+            gl.drawArrays(gl.TRIANGLE_STRIP, offset_2, vertexCount);
+        }
     }
 }
