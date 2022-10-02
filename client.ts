@@ -199,7 +199,7 @@ function main()
         },
     }
 
-    let s1 = CreateSphere( gl, 1.0, 100, 100, programInfo, loadTexture( gl, "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_poles_8k.tif" ) );
+    let s1 = CreateSphere( gl, 1.0, 100, 100, programInfo, loadTexture( gl, "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_poles_1k.jpg" ) );
     s1.transform.pos[ 2 ] += 4;
 
     let prevt = 0;
@@ -355,11 +355,11 @@ function loadTexture(gl: WebGLRenderingContext, url: string): WebGLTexture
                 pixel);
   
     const image = new Image();
-        image.onload = () => {
-            gl.bindTexture(gl.TEXTURE_2D, texture);
-            gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
-                            srcFormat, srcType, image);
-    
+    image.onload = function() {
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
+                        srcFormat, srcType, image);
+
         // WebGL1 has different requirements for power of 2 images
         // vs non power of 2 images so check if the image is a
         // power of 2 in both dimensions.

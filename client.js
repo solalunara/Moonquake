@@ -123,7 +123,7 @@ function main() {
             uSampler: gl.getUniformLocation(shaderProgram, 'uSampler')
         }
     };
-    var s1 = CreateSphere(gl, 1.0, 100, 100, programInfo, loadTexture(gl, "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_poles_8k.tif"));
+    var s1 = CreateSphere(gl, 1.0, 100, 100, programInfo, loadTexture(gl, "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_poles_1k.jpg"));
     s1.transform.pos[2] += 4;
     var prevt = 0;
     function render(t) {
