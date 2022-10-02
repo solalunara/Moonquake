@@ -128,6 +128,7 @@ function drawScene(gl: WebGLRenderingContext, programInfo: ProgramInfo ) {
     const projectionMatrix = Perspective( zFar, zNear, fieldOfView, aspect );
   
     let modelViewMatrix = Identity();
+    modelViewMatrix = Rotate( modelViewMatrix, 'x', 45 * Math.PI / 180 );
     modelViewMatrix = Translate( modelViewMatrix, [0.0, 0.0, 6.0] );
   
     // Tell WebGL how to pull out the positions from the position

@@ -83,6 +83,7 @@ function drawScene(gl, programInfo) {
     var zFar = 100.0;
     var projectionMatrix = Perspective(zFar, zNear, fieldOfView, aspect);
     var modelViewMatrix = Identity();
+    modelViewMatrix = Rotate(modelViewMatrix, 'x', 45 * Math.PI / 180);
     modelViewMatrix = Translate(modelViewMatrix, [0.0, 0.0, 6.0]);
     // Tell WebGL how to pull out the positions from the position
     // buffer into the vertexPosition attribute.
